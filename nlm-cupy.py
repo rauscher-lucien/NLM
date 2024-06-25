@@ -42,7 +42,16 @@ def nlm_filter_3d_image_stack(image_stack, h, search_window, block_size):
                 for dy in range(-half_block_size, half_block_size + 1):
                     for dx in range(-half_block_size, half_block_size + 1):
                         shifted = cp.roll(search_window, shift=(dy, dx), axis=(0, 1))
-                        ssd += (central_block - shifted[:central_block.shape[0], :central_block.shape[1]]) ** 2
+                        
+                        # Calculate valid bounds for the shifted patch
+                        y_start = max(0, dy + half_block_size)
+                        y_end = min(search_window.shape[0], search_window.shape[0] + dy - half_block_size)
+                        x_start = max(0, dx + half_block_size)
+                        x_end = min(search_window.shape[1], search_window.shape[1] + dx - half_block_size)
+                        
+                        ssd[:(y_end-y_start), :(x_end-x_start)] += (
+                            central_block - shifted[y_start:y_end, x_start:x_end]
+                        ) ** 2
                 
                 # Compute the weights based on the SSD and Gaussian weights
                 weights = cp.exp(-ssd / (h ** 2))
@@ -97,3 +106,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
